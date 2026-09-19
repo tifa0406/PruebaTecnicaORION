@@ -5,13 +5,17 @@ require('./models/modelActivo');
 require('./models/modelUsuario');
 require('./models/modelCorredor');
 require('./models/modelOrdenTrabajo');
+require('./models/modelCuadrilla');
+require('./models/modelOrdenCuadrilla');
 const seederCorredores = require('./seeders/seederCorredores');
 const seederUsuarios = require('./seeders/seederUsuarios');
 const seederActivos = require('./seeders/seederActivos');
+const seederCuadrillas = require('./seeders/seederCuadrillas');
 const seederOrdenes = require('./seeders/seederOrdenes');
 const routeActivos = require('./routes/routeActivos');
 const routeAuth = require('./routes/routeAuth');
 const routeOrdenes = require('./routes/routeOrdenes');
+const routeCuadrillas = require('./routes/routeCuadrillas');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
@@ -26,6 +30,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', routeAuth);
 app.use('/api/activos', routeActivos);
 app.use('/api/ordenes', routeOrdenes);
+app.use('/api/cuadrillas', routeCuadrillas);
 
 app.use(errorHandler);
 
@@ -37,6 +42,7 @@ async function start() {
     await seederCorredores();
     await seederUsuarios();
     await seederActivos();
+    await seederCuadrillas();
     await seederOrdenes();
     app.listen(PORT, () => {
       console.log(`Backend escuchando en puerto ${PORT}`);

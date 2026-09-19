@@ -1,5 +1,7 @@
 const OrdenTrabajo = require('../models/modelOrdenTrabajo');
 const Activo = require('../models/modelActivo');
+const Cuadrilla = require('../models/modelCuadrilla');
+const OrdenCuadrilla = require('../models/modelOrdenCuadrilla');
 const { DomainError } = require('./serviceActivo');
 
 const TIPOS = ['PREVENTIVO', 'CORRECTIVO'];
@@ -9,7 +11,7 @@ const TRANSICIONES = {
   ABIERTA: ['ASIGNADA', 'CANCELADA'],
   ASIGNADA: ['EN_EJECUCION', 'CANCELADA'],
   EN_EJECUCION: ['CERRADA'],
-  CERRADA: ['ABIERTA'], // solo COORDINADOR
+  CERRADA: ['ABIERTA'],
   CANCELADA: [],
 };
 
@@ -89,7 +91,6 @@ async function crear(datos) {
   try {
     const orden = await OrdenTrabajo.create(datos);
 
-    // RN-07: activo pasa a EN_MANTENIMIENTO si estaba OPERATIVO
     if (activo.estado === 'OPERATIVO') {
       await activo.update({ estado: 'EN_MANTENIMIENTO' });
     }
@@ -134,7 +135,11 @@ async function actualizar(id, datos) {
 }
 
 async function cambiarEstado(id, nuevoEstado, rolUsuario, datos = {}) {
-  const orden = await obtenerIdConActivo(id);
+  const orden = await OrdenTrabajo.findByPk(id);
+  if (!orden) {
+    throw new DomainError('NOT_FOUND', 'Orden no encontrada', null, 404);
+  }
+
   const activo = await Activo.findByPk(orden.activoId);
 
   const permitidas = TRANSICIONES[orden.estado] || [];
@@ -147,7 +152,6 @@ async function cambiarEstado(id, nuevoEstado, rolUsuario, datos = {}) {
     );
   }
 
-  // Reapertura (CERRADA → ABIERTA) solo COORDINADOR
   if (orden.estado === 'CERRADA' && nuevoEstado === 'ABIERTA' && rolUsuario !== 'COORDINADOR') {
     throw new DomainError(
       'FORBIDDEN',
@@ -157,7 +161,6 @@ async function cambiarEstado(id, nuevoEstado, rolUsuario, datos = {}) {
     );
   }
 
-  // Cierre (EN_EJECUCION → CERRADA) requiere observación
   if (nuevoEstado === 'CERRADA' && !datos.observacionCierre) {
     throw new DomainError(
       'VALIDATION_ERROR',
@@ -167,7 +170,6 @@ async function cambiarEstado(id, nuevoEstado, rolUsuario, datos = {}) {
     );
   }
 
-  // Cancelación requiere motivo
   if (nuevoEstado === 'CANCELADA' && !datos.motivoCancelacion) {
     throw new DomainError(
       'VALIDATION_ERROR',
@@ -191,12 +193,10 @@ async function cambiarEstado(id, nuevoEstado, rolUsuario, datos = {}) {
 
   await orden.update(cambios);
 
-  // RN-08: si se cierra o cancela la última orden activa, el activo vuelve a OPERATIVO
   if (nuevoEstado === 'CERRADA' || nuevoEstado === 'CANCELADA') {
     await sincronizarEstadoActivo(activo);
   }
 
-  // Si se reabre una orden CERRADA, el activo vuelve a EN_MANTENIMIENTO si estaba OPERATIVO
   if (nuevoEstado === 'ABIERTA' && activo.estado === 'OPERATIVO') {
     await activo.update({ estado: 'EN_MANTENIMIENTO' });
   }
@@ -217,12 +217,106 @@ async function sincronizarEstadoActivo(activo) {
   }
 }
 
-async function obtenerIdConActivo(id) {
-  const orden = await OrdenTrabajo.findByPk(id);
+async function asignarCuadrilla(ordenId, cuadrillaId, fechaInicio, fechaFin) {
+  const orden = await OrdenTrabajo.findByPk(ordenId);
   if (!orden) {
     throw new DomainError('NOT_FOUND', 'Orden no encontrada', null, 404);
   }
-  return orden;
+
+  if (orden.estado !== 'ABIERTA') {
+    throw new DomainError(
+      'CONFLICT',
+      'Solo se puede asignar cuadrilla a una orden ABIERTA',
+      `Estado actual: ${orden.estado}`,
+      409
+    );
+  }
+
+  const cuadrilla = await Cuadrilla.findByPk(cuadrillaId);
+  if (!cuadrilla) {
+    throw new DomainError('INVALID_CUADRILLA', 'La cuadrilla no existe', null, 400);
+  }
+
+  if (cuadrilla.estado === 'INACTIVA') {
+    throw new DomainError('CONFLICT', 'No se puede asignar una cuadrilla inactiva', null, 409);
+  }
+
+  if (!fechaInicio || !fechaFin) {
+    throw new DomainError('VALIDATION_ERROR', 'Fecha de inicio y fin son obligatorias', null, 400);
+  }
+
+  if (fechaInicio > fechaFin) {
+    throw new DomainError('VALIDATION_ERROR', 'Fecha de inicio no puede ser posterior a fecha fin', null, 400);
+  }
+
+  const asignaciones = await OrdenCuadrilla.findAll({ where: { cuadrillaId } });
+
+  const haySolapamiento = asignaciones.some(
+    (a) => fechaInicio <= a.fechaFin && fechaFin >= a.fechaInicio
+  );
+
+  if (haySolapamiento) {
+    throw new DomainError(
+      'CONFLICT',
+      'La cuadrilla ya está asignada a otra orden en ese rango de fechas',
+      null,
+      409
+    );
+  }
+
+  const asignacion = await OrdenCuadrilla.create({
+    ordenId,
+    cuadrillaId,
+    fechaAsignacion: new Date().toISOString().split('T')[0],
+    fechaInicio,
+    fechaFin,
+  });
+
+  await orden.update({ estado: 'ASIGNADA' });
+  await cuadrilla.update({ estado: 'ASIGNADA' });
+
+  return asignacion;
+}
+
+async function desasignarCuadrilla(ordenId, cuadrillaId) {
+  const orden = await OrdenTrabajo.findByPk(ordenId);
+  if (!orden) {
+    throw new DomainError('NOT_FOUND', 'Orden no encontrada', null, 404);
+  }
+
+  if (orden.estado !== 'ASIGNADA') {
+    throw new DomainError(
+      'CONFLICT',
+      'Solo se puede desasignar de una orden en estado ASIGNADA',
+      `Estado actual: ${orden.estado}`,
+      409
+    );
+  }
+
+  const asignacion = await OrdenCuadrilla.findOne({
+    where: { ordenId, cuadrillaId },
+  });
+
+  if (!asignacion) {
+    throw new DomainError('NOT_FOUND', 'Asignación no encontrada', null, 404);
+  }
+
+  await asignacion.destroy();
+
+  const restantes = await OrdenCuadrilla.count({ where: { ordenId } });
+  if (restantes === 0) {
+    await orden.update({ estado: 'ABIERTA' });
+  }
+
+  const cuadrilla = await Cuadrilla.findByPk(cuadrillaId);
+  if (cuadrilla) {
+    const asignacionesActivas = await OrdenCuadrilla.count({ where: { cuadrillaId } });
+    if (asignacionesActivas === 0) {
+      await cuadrilla.update({ estado: 'DISPONIBLE' });
+    }
+  }
+
+  return { mensaje: 'Cuadrilla desasignada' };
 }
 
 module.exports = {
@@ -231,4 +325,6 @@ module.exports = {
   crear,
   actualizar,
   cambiarEstado,
+  asignarCuadrilla,
+  desasignarCuadrilla,
 };

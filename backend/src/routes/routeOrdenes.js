@@ -23,48 +23,63 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.post(
-  '/',
-  roleMiddleware(['SUPERVISOR', 'COORDINADOR']),
-  async (req, res, next) => {
-    try {
-      const nueva = await serviceOrdenTrabajo.crear(req.body);
-      res.status(201).json(nueva);
-    } catch (error) {
-      next(error);
-    }
+router.post('/', roleMiddleware(['SUPERVISOR', 'COORDINADOR']), async (req, res, next) => {
+  try {
+    const nueva = await serviceOrdenTrabajo.crear(req.body);
+    res.status(201).json(nueva);
+  } catch (error) {
+    next(error);
   }
-);
+});
 
-router.put(
-  '/:id',
-  roleMiddleware(['SUPERVISOR', 'COORDINADOR']),
-  async (req, res, next) => {
-    try {
-      const orden = await serviceOrdenTrabajo.actualizar(req.params.id, req.body);
-      res.json(orden);
-    } catch (error) {
-      next(error);
-    }
+router.put('/:id', roleMiddleware(['SUPERVISOR', 'COORDINADOR']), async (req, res, next) => {
+  try {
+    const orden = await serviceOrdenTrabajo.actualizar(req.params.id, req.body);
+    res.json(orden);
+  } catch (error) {
+    next(error);
   }
-);
+});
 
-router.patch(
-  '/:id/estado',
-  roleMiddleware(['SUPERVISOR', 'COORDINADOR']),
-  async (req, res, next) => {
-    try {
-      const orden = await serviceOrdenTrabajo.cambiarEstado(
-        req.params.id,
-        req.body.estado,
-        req.usuario.rol,
-        req.body
-      );
-      res.json(orden);
-    } catch (error) {
-      next(error);
-    }
+router.patch('/:id/estado', roleMiddleware(['SUPERVISOR', 'COORDINADOR']), async (req, res, next) => {
+  try {
+    const orden = await serviceOrdenTrabajo.cambiarEstado(
+      req.params.id,
+      req.body.estado,
+      req.usuario.rol,
+      req.body
+    );
+    res.json(orden);
+  } catch (error) {
+    next(error);
   }
-);
+});
+
+router.post('/:id/cuadrillas', roleMiddleware(['SUPERVISOR', 'COORDINADOR']), async (req, res, next) => {
+  try {
+    const { cuadrillaId, fechaInicio, fechaFin } = req.body;
+    const asignacion = await serviceOrdenTrabajo.asignarCuadrilla(
+      req.params.id,
+      cuadrillaId,
+      fechaInicio,
+      fechaFin
+    );
+    res.status(201).json(asignacion);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete('/:id/cuadrillas/:cuadrillaId', roleMiddleware(['SUPERVISOR', 'COORDINADOR']), async (req, res, next) => {
+  try {
+    const resultado = await serviceOrdenTrabajo.desasignarCuadrilla(
+      req.params.id,
+      req.params.cuadrillaId
+    );
+    res.json(resultado);
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = router;
