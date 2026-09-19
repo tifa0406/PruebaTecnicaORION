@@ -43,5 +43,28 @@ describe('serviceAuth', () => {
         status: 400,
       });
     });
+
+    test('rechaza email no registrado', async () => {
+      await expect(
+        serviceAuth.login('noexiste@orion.com', '123456')
+      ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS', status: 401 });
+    });
+  });
+
+  describe('verificarToken', () => {
+    test('verifica un token válido', async () => {
+      const resultado = await serviceAuth.login('test@orion.com', '123456');
+      const decoded = serviceAuth.verificarToken(resultado.token);
+      expect(decoded.email).toBe('test@orion.com');
+      expect(decoded.rol).toBe('SUPERVISOR');
+    });
+
+    test('rechaza un token inválido', () => {
+      expect(() => serviceAuth.verificarToken('token.invalido.aqui')).toThrow();
+    });
+
+    test('rechaza un token vacío', () => {
+      expect(() => serviceAuth.verificarToken('')).toThrow();
+    });
   });
 });

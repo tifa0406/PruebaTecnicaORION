@@ -34,12 +34,10 @@ async function listar(filtros) {
   if (filtros.estado) where.estado = filtros.estado;
   if (filtros.corredorVial) where.corredorVial = filtros.corredorVial;
 
-  // Paginación con valores por defecto
   const page = Math.max(1, parseInt(filtros.page) || 1);
   const size = Math.min(100, Math.max(1, parseInt(filtros.size) || 10));
   const offset = (page - 1) * size;
 
-  // Ordenamiento configurable
   const ordenamientosValidos = ['codigo', 'nombre', 'tipo', 'estado', 'fechaInstalacion'];
   const sort = ordenamientosValidos.includes(filtros.sort) ? filtros.sort : 'codigo';
   const order = filtros.order === 'desc' ? 'DESC' : 'ASC';
@@ -88,12 +86,10 @@ async function crear(datos) {
 async function actualizar(id, datos) {
   const activo = await obtenerPorId(id);
 
-  // RN-10: validar corredor si se cambia
   if (datos.corredorVial && datos.corredorVial !== activo.corredorVial) {
     await validarCorredor(datos.corredorVial);
   }
 
-  // RN-12: no reasignar corredor si está fuera de servicio
   if (
     activo.estado === 'FUERA_DE_SERVICIO' &&
     datos.corredorVial &&

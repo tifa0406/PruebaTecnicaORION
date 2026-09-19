@@ -171,5 +171,134 @@ describe('serviceActivo', () => {
         serviceActivo.actualizar(activo.id, { corredorVial: 'Sur' })
       ).rejects.toMatchObject({ code: 'CONFLICT', status: 409 });
     });
+
+    test('actualiza un activo con datos válidos', async () => {
+      const activo = await serviceActivo.crear({
+        codigo: 'UPD-002',
+        nombre: 'Activo Original',
+        tipo: 'PMV',
+        ubicacion: 'Km 1',
+        corredorVial: 'Norte',
+        fechaInstalacion: '2024-01-01',
+      });
+
+      const actualizado = await serviceActivo.actualizar(activo.id, {
+        nombre: 'Activo Modificado',
+        ubicacion: 'Km 5',
+      });
+
+      expect(actualizado.nombre).toBe('Activo Modificado');
+      expect(actualizado.ubicacion).toBe('Km 5');
+    });
+
+    test('permite cambiar corredor si el activo está OPERATIVO', async () => {
+      const activo = await serviceActivo.crear({
+        codigo: 'UPD-003',
+        nombre: 'Activo Corredor',
+        tipo: 'CCTV',
+        ubicacion: 'Km 2',
+        corredorVial: 'Norte',
+        fechaInstalacion: '2024-01-01',
+      });
+
+      const actualizado = await serviceActivo.actualizar(activo.id, {
+        corredorVial: 'Sur',
+      });
+
+      expect(actualizado.corredorVial).toBe('Sur');
+    });
+
+    test('rechaza cambiar a un corredor inexistente', async () => {
+      const activo = await serviceActivo.crear({
+        codigo: 'UPD-004',
+        nombre: 'Activo Corredor Malo',
+        tipo: 'PMV',
+        ubicacion: 'Km 3',
+        corredorVial: 'Norte',
+        fechaInstalacion: '2024-01-01',
+      });
+
+      await expect(
+        serviceActivo.actualizar(activo.id, { corredorVial: 'Corredor Inexistente' })
+      ).rejects.toMatchObject({ code: 'INVALID_CORREDOR', status: 400 });
+    });
+
+    test('rechaza actualizar un activo inexistente', async () => {
+      await expect(
+        serviceActivo.actualizar(99999, { nombre: 'No existe' })
+      ).rejects.toMatchObject({ code: 'NOT_FOUND', status: 404 });
+    });
+  });
+
+  describe('listar', () => {
+    test('devuelve paginación con metadatos', async () => {
+      await serviceActivo.crear({
+        codigo: 'LIST-001',
+        nombre: 'A',
+        tipo: 'PMV',
+        ubicacion: 'X',
+        corredorVial: 'Norte',
+        fechaInstalacion: '2024-01-01',
+      });
+      await serviceActivo.crear({
+        codigo: 'LIST-002',
+        nombre: 'B',
+        tipo: 'CCTV',
+        ubicacion: 'Y',
+        corredorVial: 'Sur',
+        fechaInstalacion: '2024-01-01',
+      });
+
+      const resultado = await serviceActivo.listar({ page: 1, size: 10 });
+      expect(resultado.data.length).toBe(2);
+      expect(resultado.total).toBe(2);
+      expect(resultado.page).toBe(1);
+      expect(resultado.totalPages).toBe(1);
+    });
+
+    test('filtra por tipo', async () => {
+      await serviceActivo.crear({
+        codigo: 'FILTRO-001',
+        nombre: 'Panel',
+        tipo: 'PMV',
+        ubicacion: 'X',
+        corredorVial: 'Norte',
+        fechaInstalacion: '2024-01-01',
+      });
+      await serviceActivo.crear({
+        codigo: 'FILTRO-002',
+        nombre: 'Cámara',
+        tipo: 'CCTV',
+        ubicacion: 'Y',
+        corredorVial: 'Sur',
+        fechaInstalacion: '2024-01-01',
+      });
+
+      const resultado = await serviceActivo.listar({ tipo: 'PMV' });
+      expect(resultado.data.length).toBe(1);
+      expect(resultado.data[0].tipo).toBe('PMV');
+    });
+
+    test('aplica ordenamiento por nombre descendente', async () => {
+      await serviceActivo.crear({
+        codigo: 'ORD-A',
+        nombre: 'AAA',
+        tipo: 'PMV',
+        ubicacion: 'X',
+        corredorVial: 'Norte',
+        fechaInstalacion: '2024-01-01',
+      });
+      await serviceActivo.crear({
+        codigo: 'ORD-B',
+        nombre: 'ZZZ',
+        tipo: 'CCTV',
+        ubicacion: 'Y',
+        corredorVial: 'Sur',
+        fechaInstalacion: '2024-01-01',
+      });
+
+      const resultado = await serviceActivo.listar({ sort: 'nombre', order: 'desc' });
+      expect(resultado.data[0].nombre).toBe('ZZZ');
+    });
   });
 });
