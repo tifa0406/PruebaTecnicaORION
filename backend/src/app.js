@@ -4,11 +4,14 @@ const sequelize = require('./config/database');
 require('./models/modelActivo');
 require('./models/modelUsuario');
 require('./models/modelCorredor');
+require('./models/modelOrdenTrabajo');
 const seederCorredores = require('./seeders/seederCorredores');
 const seederUsuarios = require('./seeders/seederUsuarios');
 const seederActivos = require('./seeders/seederActivos');
+const seederOrdenes = require('./seeders/seederOrdenes');
 const routeActivos = require('./routes/routeActivos');
 const routeAuth = require('./routes/routeAuth');
+const routeOrdenes = require('./routes/routeOrdenes');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
@@ -22,6 +25,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', routeAuth);
 app.use('/api/activos', routeActivos);
+app.use('/api/ordenes', routeOrdenes);
 
 app.use(errorHandler);
 
@@ -33,6 +37,7 @@ async function start() {
     await seederCorredores();
     await seederUsuarios();
     await seederActivos();
+    await seederOrdenes();
     app.listen(PORT, () => {
       console.log(`Backend escuchando en puerto ${PORT}`);
     });
