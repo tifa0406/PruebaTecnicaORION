@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: orion-db
+    environment:
+      POSTGRES_USER: orion
+      POSTGRES_PASSWORD: orion
+      POSTGRES_DB: orion_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orion"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - orion-network
+
+  backend:
+    build: ./backend
+    container_name: orion-backend
+    ports:
+      - "3001:3001"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: orion
+      DB_PASS: orion
+      DB_NAME: orion_db
+      JWT_SECRET: orion_secret_key
+      PORT: 3001
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - orion-network
+
+  frontend:
+    build: ./frontend
+    container_name: orion-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - orion-network
+
+volumes:
+  pgdata:
+
+networks:
+  orion-network:
+    driver: bridge
