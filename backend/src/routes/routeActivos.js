@@ -8,14 +8,12 @@ const {
   validarCambioEstado,
 } = require('../middlewares/validarActivo');
 
-// Todas las rutas requieren autenticación
 router.use(authMiddleware);
 
-// Lectura: cualquier rol autenticado
 router.get('/', async (req, res, next) => {
   try {
-    const activos = await serviceActivo.listar(req.query);
-    res.json({ data: activos, total: activos.length });
+    const resultado = await serviceActivo.listar(req.query);
+    res.json(resultado);
   } catch (error) {
     next(error);
   }
@@ -30,7 +28,6 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-// Escritura: solo SUPERVISOR o COORDINADOR
 router.post(
   '/',
   roleMiddleware(['SUPERVISOR', 'COORDINADOR']),
@@ -59,8 +56,6 @@ router.put(
   }
 );
 
-// Cambio de estado: SUPERVISOR o COORDINADOR
-// Excepción: FUERA_DE_SERVICIO → OPERATIVO solo COORDINADOR (validado en el servicio)
 router.patch(
   '/:id/estado',
   roleMiddleware(['SUPERVISOR', 'COORDINADOR']),

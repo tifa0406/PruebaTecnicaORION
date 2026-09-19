@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
+const Corredor = require('./modelCorredor');
 
 const Activo = sequelize.define('Activo', {
   id: {

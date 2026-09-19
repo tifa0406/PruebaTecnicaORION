@@ -1,5 +1,6 @@
 const sequelize = require('../src/config/database');
 const Activo = require('../src/models/modelActivo');
+const Corredor = require('../src/models/modelCorredor');
 const serviceActivo = require('../src/services/serviceActivo');
 
 beforeAll(async () => {
@@ -12,6 +13,13 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await Activo.destroy({ where: {}, truncate: true });
+  await Corredor.destroy({ where: {}, truncate: true });
+
+  await Corredor.bulkCreate([
+    { nombre: 'Corredor Test' },
+    { nombre: 'Norte' },
+    { nombre: 'Sur' },
+  ]);
 });
 
 describe('serviceActivo', () => {
@@ -50,6 +58,19 @@ describe('serviceActivo', () => {
           fechaInstalacion: '2024-02-01',
         })
       ).rejects.toMatchObject({ code: 'DUPLICATE_CODE', status: 409 });
+    });
+
+    test('rechaza crear activo con corredor inexistente', async () => {
+      await expect(
+        serviceActivo.crear({
+          codigo: 'NOCOR-001',
+          nombre: 'Activo sin corredor',
+          tipo: 'PMV',
+          ubicacion: 'Km 1',
+          corredorVial: 'Corredor Inexistente',
+          fechaInstalacion: '2024-01-01',
+        })
+      ).rejects.toMatchObject({ code: 'INVALID_CORREDOR', status: 400 });
     });
   });
 
