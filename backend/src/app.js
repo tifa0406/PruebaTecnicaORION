@@ -2,8 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const sequelize = require('./config/database');
 const Activo = require('./models/modelActivo');
+const Usuario = require('./models/modelUsuario');
 const seederActivos = require('./seeders/seederActivos');
+const seederUsuarios = require('./seeders/seederUsuarios');
 const routeActivos = require('./routes/routeActivos');
+const routeAuth = require('./routes/routeAuth');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
@@ -16,7 +19,10 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'orion-backend' });
 });
 
-// Rutas
+// Rutas públicas
+app.use('/api/auth', routeAuth);
+
+// Rutas protegidas
 app.use('/api/activos', routeActivos);
 
 // Middleware de errores (siempre al final)
@@ -27,6 +33,7 @@ const PORT = process.env.PORT || 3001;
 async function start() {
   try {
     await sequelize.sync({ alter: true });
+    await seederUsuarios();
     await seederActivos();
     app.listen(PORT, () => {
       console.log(`Backend escuchando en puerto ${PORT}`);

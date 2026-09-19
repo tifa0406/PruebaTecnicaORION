@@ -81,7 +81,7 @@ async function actualizar(id, datos) {
   }
 }
 
-async function cambiarEstado(id, nuevoEstado) {
+async function cambiarEstado(id, nuevoEstado, rolUsuario) {
   const activo = await obtenerPorId(id);
 
   const permitidas = TRANSICIONES[activo.estado] || [];
@@ -94,15 +94,20 @@ async function cambiarEstado(id, nuevoEstado) {
     );
   }
 
+  // RN-08: FUERA_DE_SERVICIO → OPERATIVO solo con COORDINADOR
+  if (
+    activo.estado === 'FUERA_DE_SERVICIO' &&
+    nuevoEstado === 'OPERATIVO' &&
+    rolUsuario !== 'COORDINADOR'
+  ) {
+    throw new DomainError(
+      'FORBIDDEN',
+      'Solo un COORDINADOR puede reactivar un activo fuera de servicio',
+      null,
+      403
+    );
+  }
+
   await activo.update({ estado: nuevoEstado });
   return activo;
 }
-
-module.exports = {
-  listar,
-  obtenerPorId,
-  crear,
-  actualizar,
-  cambiarEstado,
-  DomainError,
-};
