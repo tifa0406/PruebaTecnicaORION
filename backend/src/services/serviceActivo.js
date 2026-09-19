@@ -111,3 +111,11 @@ async function cambiarEstado(id, nuevoEstado, rolUsuario) {
   await activo.update({ estado: nuevoEstado });
   return activo;
 }
+module.exports = {
+  listar,
+  obtenerPorId,
+  crear,
+  actualizar,
+  cambiarEstado,
+  DomainError,
+};
