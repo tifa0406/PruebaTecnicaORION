@@ -13,13 +13,13 @@ const ESTADOS_VALIDOS = [
 ];
 
 function validarCreacion(req, res, next) {
-  const { codigo, nombre, tipo, ubicacion, corredorVial, fechaInstalacion } = req.body;
+  const { nombre, tipo, ubicacion, corredorVial, fechaInstalacion } = req.body;
 
-  if (!codigo || !nombre || !tipo || !ubicacion || !corredorVial || !fechaInstalacion) {
+  if (!nombre || !tipo || !ubicacion || !corredorVial || !fechaInstalacion) {
     return res.status(400).json({
       code: 'VALIDATION_ERROR',
       message: 'Faltan campos obligatorios',
-      details: 'codigo, nombre, tipo, ubicacion, corredorVial y fechaInstalacion son obligatorios',
+      details: 'nombre, tipo, ubicacion, corredorVial y fechaInstalacion son obligatorios',
     });
   }
 
@@ -28,14 +28,6 @@ function validarCreacion(req, res, next) {
       code: 'VALIDATION_ERROR',
       message: 'Tipo de activo no permitido',
       details: `Tipo debe ser uno de: ${TIPOS_VALIDOS.join(', ')}`,
-    });
-  }
-
-  if (codigo.length > 50) {
-    return res.status(400).json({
-      code: 'VALIDATION_ERROR',
-      message: 'Código demasiado largo',
-      details: 'El código tiene máximo 50 caracteres',
     });
   }
 
@@ -67,21 +59,13 @@ function validarCreacion(req, res, next) {
 }
 
 function validarActualizacion(req, res, next) {
-  const { tipo, codigo, nombre, ubicacion, fechaInstalacion } = req.body;
+  const { tipo, nombre, ubicacion, fechaInstalacion } = req.body;
 
   if (tipo && !TIPOS_VALIDOS.includes(tipo)) {
     return res.status(400).json({
       code: 'VALIDATION_ERROR',
       message: 'Tipo de activo no permitido',
       details: `Tipo debe ser uno de: ${TIPOS_VALIDOS.join(', ')}`,
-    });
-  }
-
-  if (codigo && codigo.length > 50) {
-    return res.status(400).json({
-      code: 'VALIDATION_ERROR',
-      message: 'Código demasiado largo',
-      details: 'El código tiene máximo 50 caracteres',
     });
   }
 

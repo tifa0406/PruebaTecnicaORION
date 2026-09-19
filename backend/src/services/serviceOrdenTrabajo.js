@@ -15,6 +15,11 @@ const TRANSICIONES = {
   CANCELADA: [],
 };
 
+async function generarCodigo() {
+  const total = await OrdenTrabajo.count();
+  return `OT-${String(total + 1).padStart(3, '0')}`;
+}
+
 async function listar(filtros) {
   const where = {};
   if (filtros.tipo) where.tipo = filtros.tipo;
@@ -58,6 +63,8 @@ async function obtenerPorId(id) {
 }
 
 async function crear(datos) {
+  datos.codigo = await generarCodigo();
+
   if (!TIPOS.includes(datos.tipo)) {
     throw new DomainError('VALIDATION_ERROR', 'Tipo inválido', `Debe ser: ${TIPOS.join(', ')}`, 400);
   }
@@ -159,6 +166,18 @@ async function cambiarEstado(id, nuevoEstado, rolUsuario, datos = {}) {
       null,
       403
     );
+  }
+
+  if (nuevoEstado === 'EN_EJECUCION') {
+    const asignaciones = await OrdenCuadrilla.count({ where: { ordenId: id } });
+    if (asignaciones === 0) {
+      throw new DomainError(
+        'CONFLICT',
+        'No hay cuadrilla asignada',
+        'Asigne una cuadrilla antes de iniciar la orden',
+        409
+      );
+    }
   }
 
   if (nuevoEstado === 'CERRADA' && !datos.observacionCierre) {

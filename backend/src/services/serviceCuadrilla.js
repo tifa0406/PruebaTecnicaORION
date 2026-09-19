@@ -4,6 +4,11 @@ const { DomainError } = require('./serviceActivo');
 const ESPECIALIDADES = ['ELECTRICIDAD', 'COMUNICACIONES', 'OBRA_CIVIL', 'MULTIDISCIPLINARIA'];
 const ESTADOS = ['DISPONIBLE', 'ASIGNADA', 'INACTIVA'];
 
+async function generarCodigo() {
+  const total = await Cuadrilla.count();
+  return `CUA-${String(total + 1).padStart(3, '0')}`;
+}
+
 async function listar(filtros) {
   const where = {};
   if (filtros.especialidad) where.especialidad = filtros.especialidad;
@@ -43,6 +48,8 @@ async function obtenerPorId(id) {
 }
 
 async function crear(datos) {
+  datos.codigo = await generarCodigo();
+
   if (!ESPECIALIDADES.includes(datos.especialidad)) {
     throw new DomainError('VALIDATION_ERROR', 'Especialidad inválida', `Debe ser: ${ESPECIALIDADES.join(', ')}`, 400);
   }

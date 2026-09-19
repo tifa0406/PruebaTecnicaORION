@@ -28,6 +28,11 @@ async function validarCorredor(corredorVial) {
   }
 }
 
+async function generarCodigo() {
+  const total = await Activo.count();
+  return `ACT-${String(total + 1).padStart(3, '0')}`;
+}
+
 async function listar(filtros) {
   const where = {};
   if (filtros.tipo) where.tipo = filtros.tipo;
@@ -68,6 +73,7 @@ async function obtenerPorId(id) {
 
 async function crear(datos) {
   await validarCorredor(datos.corredorVial);
+  datos.codigo = await generarCodigo();
   try {
     return await Activo.create(datos);
   } catch (error) {
