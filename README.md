@@ -102,3 +102,47 @@ La evaluación tendrá en cuenta:
 # Consideraciones Finales
 En caso de realizar supuestos funcionales o técnicos, estos deberán ser documentados de manera explícita.
 No existe una única solución válida. Se valorará especialmente la capacidad de justificar las decisiones tomadas.
+
+---
+
+## Cómo ejecutar el proyecto
+- docker compose up
+
+La aplicación estará disponible en:
+
+- Frontend: http://localhost:3000
+- Backend: http://localhost:3001
+
+## Credenciales de prueba
+
+- SUPERVISOR: supervisor@orion.com / 123456
+- COORDINADOR: coordinador@orion.com / 123456
+- TECNICO: tecnico@orion.com / 123456
+
+## Endpoints principales
+
+- GET /api/activos
+- POST /api/activos
+- GET /api/ordenes
+- POST /api/ordenes
+- GET /api/cuadrillas
+- POST /api/cuadrillas
+- GET /api/dashboard
+
+## Estructura del repositorio
+
+- backend/ — API REST (Node.js + Express + Sequelize)
+- frontend/ — Interfaz de usuario (React + Vite)
+- BACKLOG_REFINED.md — Refinamiento de las 4 HU obligatorias
+- SCENARIO.md — Decisiones arquitectónicas
+- docker-compose.yml — Orquestación de servicios
+
+## Entregables
+
+- BACKLOG_REFINED.md — refinamiento de las 4 HU obligatorias
+- SCENARIO.md — documento de arquitectura
+- docker-compose.yml — orquestación de servicios
+- backend/ — código fuente del backend
+- frontend/ — código fuente del frontend
+- Pruebas automatizadas en backend/tests/
+
