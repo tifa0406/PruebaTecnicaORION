@@ -16,6 +16,7 @@ const routeActivos = require('./routes/routeActivos');
 const routeAuth = require('./routes/routeAuth');
 const routeOrdenes = require('./routes/routeOrdenes');
 const routeCuadrillas = require('./routes/routeCuadrillas');
+const routeDashboard = require('./routes/routeDashboard');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
@@ -31,6 +32,7 @@ app.use('/api/auth', routeAuth);
 app.use('/api/activos', routeActivos);
 app.use('/api/ordenes', routeOrdenes);
 app.use('/api/cuadrillas', routeCuadrillas);
+app.use('/api/dashboard', routeDashboard);
 
 app.use(errorHandler);
 
